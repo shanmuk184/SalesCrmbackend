@@ -124,6 +124,9 @@ class SubGroup(BaseStoreModel):
 class ProductMapping(BaseStoreModel):
     pass
 
+class CreateGroupRequestParams:
+    Name = 'groupName'
+    Type = 'groupType'
 class Group(BaseStoreModel):
 
     class PropertyNames:

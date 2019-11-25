@@ -1,4 +1,4 @@
-from api.stores.group import Group, GroupType, CreateEmployeeRequestParams, MemberMapping
+from api.stores.group import Group, GroupType, CreateEmployeeRequestParams, MemberMapping, CreateGroupRequestParams
 from api.stores.user import SupportedRoles, User, GroupMapping, UserStatus
 from tornado.gen import *
 from api.core.user import UserHelper
@@ -25,7 +25,8 @@ class GroupModel(object):
         if not userId:
             userId = self._user.UserId
         group = Group()
-        group.Name = groupDict.get(Group.PropertyNames.Name)
+        group.Name = groupDict.get(CreateGroupRequestParams.Name)
+        group.Type = groupDict.get(CreateGroupRequestParams.Type)
         group.OwnerId = userId
         if type:
             group.Type = type

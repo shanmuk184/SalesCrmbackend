@@ -1,9 +1,12 @@
 from tornado.gen import *
-from .baseHandler import BaseHandler
+from .baseHandler import BaseHandler, BaseApiHandler
 from api.models.group import GroupModel
 import json
 from tornado import web
 from bson.json_util import dumps
+from tornado_swirl.swagger import schema, restapi
+
+
 class GroupsListHandler(BaseHandler):
     @web.authenticated
     @coroutine
@@ -16,7 +19,8 @@ class GroupsListHandler(BaseHandler):
             self.set_status(400, _)
             self.finish()
 
-class CreateGroupHandler(BaseHandler):
+@restapi('/api/group')
+class GroupHandler(BaseHandler):
     @web.authenticated
     @coroutine
     def post(self):
@@ -26,7 +30,7 @@ class CreateGroupHandler(BaseHandler):
             yield model.create_group(self.args)
         except Exception as e:
             pass
-        self.finish(json.dumps({'status':'success'}))
+        self.finish(json.dumps({'status': 'success'}))
 
 
 class CreateEmloyeeHandler(BaseHandler):

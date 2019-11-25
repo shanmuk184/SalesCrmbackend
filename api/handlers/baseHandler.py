@@ -77,7 +77,9 @@ class BaseHandler(RequestHandler):
     def set_default_headers(self):
         print("setting headers!!!")
         self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers", "Content-type")
+        self.set_header("Access-Control-Allow-Headers", "content-type, accept, authorization")
+        # self.set_header("Access-Control-Allow-Headers", "Accept")
+        # self.set_header("Access-Control-Allow-Headers", "Authorization")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
 
     @coroutine

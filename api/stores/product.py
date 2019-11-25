@@ -1,12 +1,21 @@
 from api.stores.base import BaseStoreModel
 from bson import ObjectId
+
+
+
 class Product(BaseStoreModel):
     class PropertyNames:
         Name = 'name'
         ProductCode = 'pc'
-        ProductId = 'pId'
+        Type = 'type'
+        SaleScheme = 'ss'
+        PurchaseScheme = 'ps'
+        CostPrice = 'cp'
+        MRP = 'mrp'
+        Id = '_id'
         AvailableQuantity = 'aq'
-        TotalQuantity = 'tq'
+        SalePrice = 'sp'
+        PurchasePrice = 'pp'
         GroupId = 'groupid'
 
     @property
