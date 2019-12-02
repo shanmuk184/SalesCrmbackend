@@ -29,12 +29,14 @@ class GroupHelper:
         raise Return(group)
 
     @coroutine
-    def get_groups_for_user(self, userId):
+    def get_groups_where_user_is_owner(self, userId):
         groupCursor = self.db.GroupCollection.find({Group.PropertyNames.OwnerId:userId})
         groups = []
         while (yield groupCursor.fetch_next):
             groupDict = groupCursor.next_object()
-            groups.append(groupDict)
+            group = Group()
+            group.populate_data_dict(groupDict)
+            groups.append(group)
         raise Return((groups))
 
     def create_member_mapping(self, memberId, roles):

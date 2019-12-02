@@ -5,14 +5,13 @@ import json
 from tornado import web
 from bson.json_util import dumps
 from tornado_swirl.swagger import schema, restapi
-
-
-class GroupsListHandler(BaseHandler):
+@restapi('/api/user/groups')
+class GroupsListHandler(BaseApiHandler):
     @web.authenticated
     @coroutine
     def get(self):
         model = GroupModel(user=self._user, db=self.db)
-        (status, _) = yield model.get_groups_for_user(self._user.UserId)
+        (status, _) = yield model.get_groups_where_user_is_owner(self._user.UserId)
         if status:
             self.finish(dumps(_))
         else:
@@ -32,8 +31,19 @@ class GroupHandler(BaseHandler):
             pass
         self.finish(json.dumps({'status': 'success'}))
 
-
-class CreateEmloyeeHandler(BaseHandler):
+@restapi('/api/(.*)/group')
+class CreateEmloyeeHandler(BaseApiHandler):
     @coroutine
-    def post(self):
-        self.write("This is an employee Creation")
+    def post(self, groupId):
+        user = yield self.current_user
+        model = GroupModel(user=user, db=self.db)
+        # e=''
+        employee = None
+        try:
+            employee = yield model.create_employee(groupId, self.args)
+        except Exception as e:
+            self.set_status(400, str(e))
+            self.finish()
+        self.write(employee)
+
+

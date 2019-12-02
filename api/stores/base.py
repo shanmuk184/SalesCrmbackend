@@ -32,10 +32,10 @@ class BaseStoreModel:
                 _flat_dict[key] = entries
             else:
                 _flat_dict[key] = value
-            if not self.BaseProperties.CreatedAt not in _flat_dict:
-                _flat_dict[self.BaseProperties.CreatedAt]=datetime.datetime.now()
-            if not self.BaseProperties.UpdatedAt not in _flat_dict:
-                _flat_dict[self.BaseProperties.UpdatedAt] = datetime.datetime.now()
+        if not self.BaseProperties.CreatedAt not in _flat_dict:
+            _flat_dict[self.BaseProperties.CreatedAt]=datetime.datetime.now()
+        if not self.BaseProperties.UpdatedAt not in _flat_dict:
+            _flat_dict[self.BaseProperties.UpdatedAt] = datetime.datetime.now()
         return _flat_dict
 
     def populate_data_dict(self, dictParam=None):
@@ -96,8 +96,7 @@ class BaseStoreModel:
         return self._data_dict.get(key)
 
     def set_value(self, key, value):
-        if not key or not value:
-            raise NotImplementedError()
+
         self._data_dict[key] = value
 
 

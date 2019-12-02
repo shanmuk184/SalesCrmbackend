@@ -3,19 +3,31 @@ from enum import Enum
 from api.stores.product import Product
 from bson import ObjectId
 from datetime import datetime
-
+import uuid
 
 
 class CreateEmployeeRequestParams:
     Name = 'name'
     Designation='designation'
-    EmailId='email_id'
+    Password = 'password'
+    EmailId = 'email_id'
+    Phone = 'phone'
+
 
 class GroupType(Enum):
     Stockist = 'res'
     Direct = 'phc'
     Doctor = 'phd'
     Counter = 'emt'
+
+class GroupResponse:
+    Name = 'name'
+    Id = 'id'
+    MemberCount = 'memberCount'
+    createdDateTime = 'createdDateTime'
+    updatedDateTime = 'updatedDateTime'
+
+
 
 class MemberMapping(BaseStoreModel):
     class PropertyNames:
@@ -141,10 +153,10 @@ class Group(BaseStoreModel):
         UpdatedTimeStamp = 'uts'
 
     _reverseMapping = {
-        '_id': ('Id', ObjectId),
+        '_id': ('Id', uuid.UUID),
         'name':('Name', str),
         'employee_count': ('EmployeeCount', int),
-        'owner_id': ('OwnerId', ObjectId),
+        'owner_id': ('OwnerId', uuid.UUID),
         'membermappings': ('MemberMappings', list, MemberMapping),
         'products': ('Products', list, Product),
         'cts':('CreatedTimeStamp', datetime),

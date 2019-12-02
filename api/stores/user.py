@@ -86,7 +86,6 @@ class GroupMapping(BaseStoreModel):
     def GroupId(self, group_id):
         return self.set_value(self.PropertyNames.GroupId, group_id)
 
-
     @property
     def Roles(self):
         return self.get_value(self.PropertyNames.Roles)
@@ -266,7 +265,7 @@ class User(BaseStoreModel):
         self.set_value(self.PropertyNames.Phone, phone)
 
     _reverseMapping = {
-        '_id': ('UserId', ObjectId),
+        '_id': ('UserId', uuid.UUID),
         'name':('Name', str),
         'primaryemail': ('PrimaryEmail', str),
         'linkedaccounts': ('LinkedAccounts', list, LinkedAccount),
@@ -275,6 +274,7 @@ class User(BaseStoreModel):
         'employeeid':('EmployeeId', int),
         'status':('Status',str),
         'emailvalidated':('EmailValidated', bool),
+        'invitationCode':('InvitationCode', int),
         'cts':('CreatedTimeStamp', datetime.datetime),
         'uts': ('UpdatedTimeStamp', datetime.datetime)
     }
@@ -289,6 +289,7 @@ class User(BaseStoreModel):
         EmployeeId = 'employeeid'
         Status='status'
         EmailValidated='emailvalidated'
+        InvitationCode = 'invitationCode'
         CreatedTimeStamp = 'cts'
         UpdatedTimeStamp = 'uts'
 
@@ -304,15 +305,13 @@ class User(BaseStoreModel):
             raise NotImplementedError()
         self.set_value(self.PropertyNames.Status, status)
 
-
-
     @property
     def EmailValidated(self):
         return self.get_value(self.PropertyNames.EmailValidated)
 
     @EmailValidated.setter
     def EmailValidated(self, emv):
-        if not emv:
+        if not isinstance(emv, bool):
             raise NotImplementedError()
         self.set_value(self.PropertyNames.EmailValidated, emv)
 

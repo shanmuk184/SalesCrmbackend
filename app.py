@@ -24,7 +24,7 @@ class MyApplication(object):
 
     def make_app(self):
         db = self.database.get_motor_connection()
-        return Application(api_routes(),
+        return tornado.web.Application(api_routes(),
                                        db = db,
                                        cookie_secret=settings.CookieSecret,
                                        debug=settings.Debug,

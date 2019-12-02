@@ -1,25 +1,14 @@
-from api.stores.group import Group, GroupType, CreateEmployeeRequestParams, MemberMapping, CreateGroupRequestParams
-from api.stores.user import SupportedRoles, User, GroupMapping, UserStatus
+from api.stores.group import *
+from api.stores.user import User, GroupMapping, UserStatus, LinkedAccount, LinkedAccountType
+from api.stores.employee import Employee, SupportedRoles, GroupStatus
 from tornado.gen import *
 from api.core.user import UserHelper
+from api.models.base import BaseModel
 from api.core.group import GroupHelper
 import uuid
+import datetime
 
-class GroupModel(object):
-    def __init__(self, **kwargs):
-        if not kwargs.get('db'):
-            raise ValueError('db should be present')
-        if kwargs.get('user'):
-            self._user = kwargs.get('user')
-        self.db = kwargs.get('db')
-
-        if self._user:
-            self._gh = GroupHelper(**kwargs)
-            self._uh = UserHelper(**kwargs)
-        elif self.db:
-            self._gh = GroupHelper(db=self.db)
-            self._uh = UserHelper(db=self.db)
-
+class GroupModel(BaseModel):
     @coroutine
     def create_group(self, groupDict, userId=None, type=None):
         if not userId:
@@ -28,54 +17,95 @@ class GroupModel(object):
         group.Name = groupDict.get(CreateGroupRequestParams.Name)
         group.Type = groupDict.get(CreateGroupRequestParams.Type)
         group.OwnerId = userId
-        if type:
-            group.Type = type
-        membermappings = [self._gh.create_member_mapping(self._user.UserId, [SupportedRoles.Admin])]
-        group.MemberMappings = membermappings
+        # membermappings = [self._gh.create_member_mapping(userId, [SupportedRoles.Admin])]
+        # group.MemberMappings = membermappings
         group.set_value(group.PropertyNames.CreatedTimeStamp, datetime.datetime.now())
         group.set_value(group.PropertyNames.UpdatedTimeStamp, datetime.datetime.now())
-        group_result = yield self._gh.create_group_for_user(group.datadict)
-        group.Id = group_result.inserted_id
-        memberGroupMapping = self._uh.create_group_mapping(group_result.inserted_id, [SupportedRoles.Admin])
-        yield self._gh.insert_group_mapping_into_user(self._user.UserId, memberGroupMapping.datadict)
-        raise Return(group)
+        group.Id = uuid.uuid4()
+        yield self._gh.create_group_for_user(group.datadict)
+        yield self.create_employee_profile(userId, group.Id, SupportedRoles.Admin)
 
+    #
+    # @coroutine
+    # def create_employee(self, employeeDict, addedby=None):
+    #     # create member mapping for employee
+    #     employeeId = employeeDict.get('employee')
+    #     membermappings = [self._gh.create_member_mapping(userId, [SupportedRoles.Admin])]
+    #
     # Pharmaceutical distributor is a kind of group that don't have link to Pharmacy company only reverse link
+
+
     @coroutine
     def create_pharmaceutical_distributor(self, **kwargs):
         group = self.create_group(kwargs, self._user.UserId, GroupType.PharmaDistributor)
         raise Return(group)
+
+    @coroutine
+    def create_employee_profile(self, userId, groupId, role):
+        employee = Employee()
+        employee.Id = uuid.uuid4()
+        employee.UserId = userId
+        employee.GroupId = groupId
+        employee.Role = role
+        if role == SupportedRoles.Admin:
+            employee.Status = GroupStatus.Joined
+        else:
+            employee.Status = GroupStatus.Invited
+        employee.CreatedTimeStamp = datetime.datetime.utcnow()
+        employee.UpdatedTimeStamp = datetime.datetime.utcnow()
+        yield self._uh.save_user(employee.datadict)
+
+
     # Dummy team for employees
     @coroutine
     def create_employee_team(self, **kwargs):
         group = self.create_group(kwargs, self._user.UserId, GroupType.EmployeeTeam)
         raise Return(group)
 
+    def populate_group_response(self, group):
+        returning_dict = {}
+        returning_dict[GroupResponse.Name] = group.Name
+        returning_dict[GroupResponse.Id] = str(group.Id)
+        returning_dict[GroupResponse.MemberCount] = len(group.MemberMappings)
+        return returning_dict
+
     @coroutine
-    def get_groups_for_user(self, userId):
+    def create_invited_state_user(self, invitedDict, groupId):
+        employee = User()
+        employee.Name = invitedDict.get(CreateEmployeeRequestParams.Name)
+        employee.Phone = invitedDict.get(CreateEmployeeRequestParams.Phone)
+        employee.UserId = uuid.uuid4()
+        account = LinkedAccount()
+        password = yield self.get_hashed_password(invitedDict.get(CreateEmployeeRequestParams.Password))
+        account.AccountName = employee.Phone
+        account.AccountHash = password.get('hash')
+        account.AccountType = LinkedAccountType.Native
+        employee.Status = UserStatus.Invited
+        employee.EmailValidated = False
+        employee.CreatedTimeStamp = datetime.datetime.now()
+        employee.UpdatedTimeStamp = datetime.datetime.now()
+        yield self._uh.save_user(employee.datadict)
+        raise Return(employee)
+
+    @coroutine
+    def get_groups_where_user_is_owner(self, userId):
         if not userId:
             userId = self._user.UserId
         try:
-            (groups) = yield self._gh.get_groups_for_user(userId)
+            (groups) = yield self._gh.get_groups_where_user_is_owner(userId)
+            groupsToReturn = list(map(lambda x: self.populate_group_response(x), groups))
+
         except Exception as e:
             raise Return((False, str(e)))
         else:
-            raise Return((True, groups))
+            raise Return((True, groupsToReturn))
 
-    def create_invited_state_user(self, invitedDict):
-        employee=User()
-        employee.Name = invitedDict.get(CreateEmployeeRequestParams.Name)
-        employee.PrimaryEmail = invitedDict.get(CreateEmployeeRequestParams.EmailId)
-        employee.UserId = uuid.uuid4()
-        employee.Status=UserStatus.Invited
-        employee.EmailValidated=False
-        employee.CreatedTimeStamp=datetime.datetime.now()
-        employee.UpdatedTimeStamp=datetime.datetime.now()
-        return employee
-
+    # @coroutine
+    # def create_unique_invitation_code(self):
+    #     invitation_codes = yield self._uh.get_all_invitation_codes()
 
     @coroutine
-    def create_employee(self, employeeDict, groupId):
+    def create_employee(self, groupId, employeeDict):
         """
             Employee added by admin.
             This method takes input from admin and creates user profile and
@@ -86,19 +116,13 @@ class GroupModel(object):
             emailid
             :return:
         """
+        if not isinstance(groupId, uuid.UUID):
+            groupId = uuid.UUID(groupId)
         if not (employeeDict and  groupId):
             raise NotImplementedError()
-        employee=self.create_invited_state_user(employeeDict)
-        employee_result = yield self._uh.save_user(employee.datadict)
-
-        if employee_result:
-            employee_mapping = MemberMapping()
-            employee_mapping.MemberId = employee.UserId
-            employee_mapping.Designation = employeeDict.get(CreateEmployeeRequestParams.Designation)
-            employee_mapping.Roles=[SupportedRoles.Member]
-            employee_mapping.JoinedTimeStamp = datetime.datetime.now()
-            employee_mapping.LastUpdatedTimeStamp = datetime.datetime.now()
-            self._gh.insert_member_mapping_into_group(groupId, employee_mapping.datadict)
+        employee = yield self.create_invited_state_user(employeeDict, groupId)
+        yield self.create_employee_profile(employee.UserId, groupId, SupportedRoles.SalesRep)
+        raise Return({'status':'success'})
 
 
 

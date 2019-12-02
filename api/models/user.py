@@ -47,6 +47,7 @@ class UserModel(BaseModel):
             raise Return((False, 'User already exists'))
         password = yield self.get_hashed_password(postBodyDict.get(RegisterRequestParams.Password))
         linkedaccount = LinkedAccount()
+        user.UserId = uuid.uuid4()
         linkedaccount.AccountName = user.PrimaryEmail
         linkedaccount.AccountHash = password.get('hash')
         linkedaccount.AccountType = LinkedAccountType.Native
@@ -54,7 +55,7 @@ class UserModel(BaseModel):
         user.Status=UserStatus.Registered
         user.EmailValidated = EmailValidationStatus.NotValidated
         user_result = yield self._uh.save_user(user.datadict)
-        user = yield self._uh.getUserByUserId(user_result.inserted_id)
+        # user = yield self._uh.getUserByUserId(user_result.inserted_id)
         # group = yield self._gh.createDummyGroupForUser(user_result.inserted_id)
         # yield self._gh.createGroupMemberMappingForDummyGroup(group.inserted_id, user_result.inserted_id)
         raise Return((True, user))
@@ -63,22 +64,11 @@ class UserModel(BaseModel):
         if self._user:
             return self._user.datadict
 
+
     @coroutine
-
-
     def validate_password(self, postBodyDict):
         if postBodyDict['password'] != postBodyDict['password2']:
             return {'status':'error', 'message':'you must enter same password'}
-
-    @coroutine
-    def get_hashed_password(self, plain_text_password:str):
-        if not plain_text_password:
-            raise NotImplementedError()
-        raise Return({'hash':bcrypt.hashpw(plain_text_password.encode('utf-8'), bcrypt.gensalt(12))})
-
-    @coroutine
-    def check_hashed_password(self, text_password, hashed_password):
-        raise Return(bcrypt.checkpw(text_password.encode('utf-8'), hashed_password))
 
     @coroutine
     def login(self, dict):

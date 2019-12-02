@@ -61,12 +61,15 @@ class BaseHandler(RequestHandler):
 
     @coroutine
     def get_current_user(self):
+
         (payload)= yield self.jwt_auth()
         if payload:
             user = yield self._uh.getUserByUserId(payload['id'])
             if user:
                 self._user = user
                 raise Return(user)
+        else:
+            raise Return(False)
         # return self.get_secure_cookie(settings.AppName)
 
     @coroutine
@@ -83,7 +86,7 @@ class BaseHandler(RequestHandler):
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
 
     @coroutine
-    def options(self):
+    def options(self, *args, **kwargs):
         # no body
         self.set_default_headers()
         self.set_status(200)
@@ -109,5 +112,4 @@ class BaseApiHandler(BaseHandler):
         if user:
             self._user = user
         yield super().prepare()
-
 

@@ -2,6 +2,7 @@ from tornado.gen import *
 from api.stores.user import User, LinkedAccount, GroupMapping, SupportedRoles, StatusType
 from db.db import Database
 from bson import ObjectId
+import uuid
 class UserHelper:
     def __init__(self, user=None, db=None):
         if user:
@@ -20,14 +21,20 @@ class UserHelper:
             print(str(e))
         raise Return(user_result)
 
-
+    @coroutine
+    def get_all_invitation_codes(self):
+        invitationCodes = yield self.db.UserCollection.find({}).distinct(User.PropertyNames.InvitationCode)
+        raise Return(invitationCodes)
     @coroutine
     def getUserByUserId(self, userId):
-        userDict = yield self.db.UserCollection.find_one({'_id':ObjectId(userId)})
+        if not isinstance(userId, uuid.UUID):
+            userId = uuid.UUID(userId)
+        userDict = yield self.db.UserCollection.find_one({'_id':userId})
         if userDict:
             user = User()
             user.populate_data_dict(userDict)
             raise Return(user)
+
     @coroutine
     def getUserByEmployeeId(self, employeeId):
         if not employeeId:

@@ -1,5 +1,5 @@
 from api.handlers.user import *
-from api.handlers.group import GroupsListHandler, GroupHandler
+from api.handlers.group import GroupsListHandler, GroupHandler, CreateEmloyeeHandler
 from api.handlers.product import ProductHandler
 from api.handlers.event import EventHandler
 
@@ -13,5 +13,8 @@ urlpatterns = [
     (r"/api/employee$", GroupsListHandler),
     (r"/api/product$", ProductHandler),
     (r"/api/event$", EventHandler),
-    (r"/api/groups$", GroupsListHandler)
+    (r"/api/groups$", GroupsListHandler),
+    (r"/api/user/groups$", GroupsListHandler),
+    (r"/api/(.*)/group", CreateEmloyeeHandler)
+
 ]
